@@ -66,6 +66,7 @@ function StudentDashboard({ user }) {
         return url;
       }
     } catch(e) {
+      console.log(e);
       return url;
     }
     return url;

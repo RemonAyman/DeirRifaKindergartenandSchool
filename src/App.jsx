@@ -29,6 +29,7 @@ function App() {
             const data = await getUserDetails(currentUser.uid);
             if (isMounted) setUserDetails(data || { role: 'student' }); // fallback
           } catch(e) {
+            console.error(e);
             if (isMounted) setUserDetails({ role: 'student' });
           } finally {
             if (isMounted) setLoading(false);

@@ -81,6 +81,7 @@ function TeacherDashboard({ user }) {
       setMaterialForm({ title: '', targetGrade: 'أولى ابتدائي', fileUrl: '', fileType: 'youtube' });
       alert("تم إضافة الدرس بنجاح!");
     } catch (err) {
+      console.error(err);
       alert("حدث خطأ في الإضافة.");
     } finally {
       setAddingMaterial(false);

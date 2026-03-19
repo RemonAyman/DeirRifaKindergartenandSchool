@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { loginUser, registerUser } from '../firebase/auth';
 
 function Login() {
@@ -7,7 +7,6 @@ function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -17,6 +16,7 @@ function Login() {
       await loginUser(email, password);
       // App.jsx will handle redirect based on role
     } catch (err) {
+      console.log(err);
       if (email === 'admin@gmail.com' && password === '1721kr55') {
          // Auto create admin account if it wasn't made yet to make it easier for user
          try {
