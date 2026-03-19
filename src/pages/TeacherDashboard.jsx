@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logoutUser } from '../firebase/auth';
-import { addStudent, getTeacherStudents, getUserDetails, uploadMaterialFile, addMaterialToDB, getTeacherMaterials } from '../firebase/db';
+import { addStudent, getTeacherStudents, getUserDetails, addMaterialToDB, getTeacherMaterials } from '../firebase/db';
 
 function TeacherDashboard({ user }) {
   const [teacherInfo, setTeacherInfo] = useState(null);
   const [students, setStudents] = useState([]);
   const [materials, setMaterials] = useState([]);
-  const [activeTab, setActiveTab] = useState('students'); // students | materials
+  const [activeTab, setActiveTab] = useState('students');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -16,10 +16,8 @@ function TeacherDashboard({ user }) {
   const [addingStudent, setAddingStudent] = useState(false);
 
   // Material Form
-  const [materialForm, setMaterialForm] = useState({ title: '', targetGrade: 'أولى ابتدائي' });
-  const [materialFile, setMaterialFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [materialForm, setMaterialForm] = useState({ title: '', targetGrade: 'أولى ابتدائي', fileUrl: '', fileType: 'youtube' });
+  const [addingMaterial, setAddingMaterial] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -65,46 +63,28 @@ function TeacherDashboard({ user }) {
     }
   };
 
-  const handleUploadMaterial = async (e) => {
+  const handleAddMaterial = async (e) => {
     e.preventDefault();
-    if (!materialFile) return alert("الرجاء اختيار ملف!");
+    if (!materialForm.fileUrl) return alert("الرجاء وضع الرابط!");
     
-    setUploading(true);
-    setUploadProgress(0);
-    
-    const filePath = `materials/${user.uid}/${Date.now()}_${materialFile.name}`;
-    
-    uploadMaterialFile(
-      materialFile, 
-      filePath, 
-      (progress) => setUploadProgress(progress),
-      (err) => {
-        alert("حدث خطأ في الرفع!");
-        setUploading(false);
-      },
-      async (url) => {
-        try {
-          await addMaterialToDB({
-            teacherId: user.uid,
-            title: materialForm.title,
-            targetGrade: materialForm.targetGrade,
-            fileUrl: url,
-            fileType: materialFile.type,
-            fileName: materialFile.name
-          });
-          const matList = await getTeacherMaterials(user.uid);
-          setMaterials(matList);
-          setMaterialForm({ title: '', targetGrade: 'أولى ابتدائي' });
-          setMaterialFile(null);
-          alert("تم رفع الملف للطلاب بنجاح!");
-        } catch (dbErr) {
-          alert("حدث خطأ في تسجيل الملف.");
-        } finally {
-          setUploading(false);
-          setUploadProgress(0);
-        }
-      }
-    );
+    setAddingMaterial(true);
+    try {
+      await addMaterialToDB({
+        teacherId: user.uid,
+        title: materialForm.title,
+        targetGrade: materialForm.targetGrade,
+        fileUrl: materialForm.fileUrl,
+        fileType: materialForm.fileType
+      });
+      const matList = await getTeacherMaterials(user.uid);
+      setMaterials(matList);
+      setMaterialForm({ title: '', targetGrade: 'أولى ابتدائي', fileUrl: '', fileType: 'youtube' });
+      alert("تم إضافة الدرس بنجاح!");
+    } catch (err) {
+      alert("حدث خطأ في الإضافة.");
+    } finally {
+      setAddingMaterial(false);
+    }
   };
 
   if (loading) {
@@ -140,7 +120,7 @@ function TeacherDashboard({ user }) {
           style={{ background: activeTab !== 'materials' ? 'white' : '', color: activeTab !== 'materials' ? 'var(--text-main)' : '' }}
           onClick={() => setActiveTab('materials')}
         >
-          الملفات والفيديوهات ({materials.length})
+          الدروس والفيديوهات ({materials.length})
         </button>
       </div>
 
@@ -197,12 +177,12 @@ function TeacherDashboard({ user }) {
             </div>
           </>
         ) : (
-          <>
+           <>
             <div className="glass-card fade-in" style={{ borderColor: 'var(--secondary)' }}>
-              <h3 style={{ marginBottom: '1.5rem', color: 'var(--primary)', borderBottom: '2px solid var(--bg-gradient-1)', paddingBottom: '0.5rem' }}>رفع فيديو أو كتاب (PDF)</h3>
-              <form onSubmit={handleUploadMaterial}>
+              <h3 style={{ marginBottom: '1.5rem', color: 'var(--primary)', borderBottom: '2px solid var(--bg-gradient-1)', paddingBottom: '0.5rem' }}>إضافة درس (يوتيوب أو جوجل درايف)</h3>
+              <form onSubmit={handleAddMaterial}>
                 <div className="form-group">
-                  <label className="form-label">عنوان الدرس أو الملف</label>
+                  <label className="form-label">عنوان الدرس</label>
                   <input type="text" className="form-input" value={materialForm.title} onChange={e => setMaterialForm({...materialForm, title: e.target.value})} required placeholder="مثال: الدرس الأول - الرياضيات" />
                 </div>
                 
@@ -212,46 +192,47 @@ function TeacherDashboard({ user }) {
                     <option value="KG 1">KG 1</option><option value="KG 2">KG 2</option><option value="أولى ابتدائي">أولى ابتدائي</option><option value="ثانية ابتدائي">ثانية ابتدائي</option><option value="ثالثة ابتدائي">ثالثة ابتدائي</option><option value="رابعة ابتدائي">رابعة ابتدائي</option><option value="خامسة ابتدائي">خامسة ابتدائي</option><option value="سادسة ابتدائي">سادسة ابتدائي</option>
                   </select>
                 </div>
+
+                <div className="form-group">
+                  <label className="form-label">نوع الرابط</label>
+                  <select className="form-input select-input" value={materialForm.fileType} onChange={e => setMaterialForm({...materialForm, fileType: e.target.value})} required>
+                    <option value="youtube">فيديو من يوتيوب (YouTube)</option>
+                    <option value="gdrive">ملف من جوجل درايف (Google Drive PDF)</option>
+                  </select>
+                </div>
                 
                 <div className="form-group">
-                  <label className="form-label">اختيار الملف (فيديو MP4 أو مستند PDF)</label>
-                  <input type="file" accept="video/mp4,application/pdf" className="form-input" style={{ background: 'white' }} onChange={e => setMaterialFile(e.target.files[0])} required />
-                  <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginTop: '0.5rem' }}>ملاحظة: يمكنك رفع ملفات تصل إلى 100 ميجابايت.</p>
+                  <label className="form-label">رابط الدرس (اللينك)</label>
+                  <input type="url" className="form-input" dir="ltr" value={materialForm.fileUrl} onChange={e => setMaterialForm({...materialForm, fileUrl: e.target.value})} required placeholder="https://..." />
+                  <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginTop: '0.5rem' }}>انسخ رابط الفيديو من يوتيوب أو ملف درايف وضعه هنا.</p>
                 </div>
 
-                <button type="submit" className="btn btn-secondary" style={{ width: '100%', marginTop: '0.5rem' }} disabled={uploading}>
-                  {uploading ? `جاري الرفع... ${Math.round(uploadProgress)}%` : 'رفع الملف الآن'}
+                <button type="submit" className="btn btn-secondary" style={{ width: '100%', marginTop: '0.5rem' }} disabled={addingMaterial}>
+                  {addingMaterial ? 'جاري الإضافة...' : 'إضافة الدرس الآن'}
                 </button>
-                
-                {uploading && (
-                  <div style={{ width: '100%', background: '#f1f5f9', height: '10px', borderRadius: '5px', marginTop: '1rem', overflow:'hidden' }}>
-                    <div style={{ width: `${uploadProgress}%`, height: '100%', background: 'var(--secondary)', transition: 'width 0.2s' }}></div>
-                  </div>
-                )}
               </form>
             </div>
             
             <div>
-              <h2 style={{ color: 'var(--primary)', marginBottom: '1rem' }}>سجل الشروحات المرفوعة</h2>
+              <h2 style={{ color: 'var(--primary)', marginBottom: '1rem' }}>سجل الشروحات المضافة</h2>
               {materials.length === 0 ? (
-                <div className="glass-card" style={{ textAlign: 'center', color: 'var(--text-light)' }}>لم تقم برفع أي شروحات أو ملفات بعد.</div>
+                <div className="glass-card" style={{ textAlign: 'center', color: 'var(--text-light)' }}>لم تقم بإضافة أي دروس بعد.</div>
               ) : (
                 <div className="table-container fade-in">
                   <table className="data-table">
-                    <thead><tr><th>عنوان الملف</th><th>النوع</th><th>الصف</th><th>حجم الملف (تخمين)</th></tr></thead>
+                    <thead><tr><th>عنوان الدرس</th><th>النوع</th><th>الصف</th></tr></thead>
                     <tbody>
                       {materials.map(m => {
-                         const isPdf = m.fileType === 'application/pdf';
+                         const isVideo = m.fileType === 'youtube';
                          return (
                           <tr key={m.id}>
                             <td style={{ fontWeight: '600' }}><a href={m.fileUrl} target="_blank" rel="noopener noreferrer" style={{textDecoration: 'none', color: 'var(--primary)'}}>{m.title}</a></td>
                             <td>
-                               <span style={{ background: isPdf ? '#fee2e2' : '#dbeafe', color: isPdf ? '#ef4444' : '#3b82f6', padding: '4px 8px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                                 {isPdf ? 'ملف PDF' : 'فيديو'}
+                               <span style={{ background: isVideo ? '#dbeafe' : '#fee2e2', color: isVideo ? '#3b82f6' : '#ef4444', padding: '4px 8px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                                 {isVideo ? 'فيديو يوتيوب' : 'جوجل درايف'}
                                </span>
                             </td>
                             <td><span style={{ background: 'var(--bg-gradient-1)', color: 'var(--primary)', padding: '4px 12px', borderRadius: '12px', fontSize: '0.85rem' }}>{m.targetGrade}</span></td>
-                            <td dir="ltr" style={{ textAlign: 'right' }}>متاح</td>
                           </tr>
                          );
                       })}

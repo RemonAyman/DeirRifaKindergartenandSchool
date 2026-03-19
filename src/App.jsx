@@ -15,26 +15,37 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     const unsubscribe = subscribeToAuthChanges(async (currentUser) => {
+      if (!isMounted) return;
+      
       setUser(currentUser);
       if (currentUser) {
         if (currentUser.email === 'admin@gmail.com') {
           setUserDetails({ role: 'admin' });
+          setLoading(false);
         } else {
           try {
             const data = await getUserDetails(currentUser.uid);
-            setUserDetails(data || { role: 'student' }); // fallback
+            if (isMounted) setUserDetails(data || { role: 'student' }); // fallback
           } catch(e) {
-            setUserDetails({ role: 'student' });
+            if (isMounted) setUserDetails({ role: 'student' });
+          } finally {
+            if (isMounted) setLoading(false);
           }
         }
       } else {
-        setUserDetails(null);
+        if (isMounted) {
+          setUserDetails(null);
+          setLoading(false);
+        }
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   if (loading) {
