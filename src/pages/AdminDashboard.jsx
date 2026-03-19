@@ -77,6 +77,7 @@ function AdminDashboard() {
               <thead>
                 <tr>
                   <th>اسم المعلم</th>
+                  <th>التخصص</th>
                   <th>الجنس</th>
                   <th>رقم الهاتف</th>
                   <th>البريد الإلكتروني</th>
@@ -90,6 +91,7 @@ function AdminDashboard() {
                   return (
                     <tr key={teacher.uid}>
                       <td style={{ fontWeight: '600' }}>{teacher.name}</td>
+                      <td>{teacher.subject || 'غير محدد'}</td>
                       <td>{teacher.gender}</td>
                       <td dir="ltr" style={{ textAlign: 'right' }}>{teacher.phone}</td>
                       <td>{teacher.email}</td>

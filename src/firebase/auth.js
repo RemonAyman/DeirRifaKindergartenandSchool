@@ -7,17 +7,18 @@ import {
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "./config";
 
-export const registerTeacher = async (email, password, teacherData) => {
+export const registerUser = async (email, password, userData) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
   
-  const role = email === 'admin@gmail.com' ? 'admin' : 'teacher';
+  // if explicitly passed role, use it
+  const finalRole = email === 'admin@gmail.com' ? 'admin' : (userData.role || 'student');
 
   // Save details in Firestore "users" collection
   await setDoc(doc(db, "users", user.uid), {
     uid: user.uid,
-    role: role,
-    ...teacherData,
+    role: finalRole,
+    ...userData,
     createdAt: new Date().toISOString()
   });
   

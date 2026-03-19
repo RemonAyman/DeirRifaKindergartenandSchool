@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { loginUser, registerTeacher } from '../firebase/auth';
+import { loginUser, registerUser } from '../firebase/auth';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -20,7 +20,7 @@ function Login() {
       if (email === 'admin@gmail.com' && password === '1721kr55') {
          // Auto create admin account if it wasn't made yet to make it easier for user
          try {
-             await registerTeacher(email, password, { name: "مدير النظام", gender: "ذكر", phone: "لا يوجد" });
+             await registerUser(email, password, { name: "مدير النظام", gender: "ذكر", phone: "لا يوجد", role: "admin" });
              return; 
          } catch(createErr) {
              console.log("Admin creation error:", createErr);

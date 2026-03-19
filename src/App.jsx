@@ -1,18 +1,36 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { subscribeToAuthChanges } from './firebase/auth';
+import { getUserDetails } from './firebase/db';
+import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import StudentDashboard from './pages/StudentDashboard';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [userDetails, setUserDetails] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = subscribeToAuthChanges((currentUser) => {
+    const unsubscribe = subscribeToAuthChanges(async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        if (currentUser.email === 'admin@gmail.com') {
+          setUserDetails({ role: 'admin' });
+        } else {
+          try {
+            const data = await getUserDetails(currentUser.uid);
+            setUserDetails(data || { role: 'student' }); // fallback
+          } catch(e) {
+            setUserDetails({ role: 'student' });
+          }
+        }
+      } else {
+        setUserDetails(null);
+      }
       setLoading(false);
     });
 
@@ -23,37 +41,51 @@ function App() {
     return <div className="loader-container"><div className="loader"></div></div>;
   }
 
-  const isAdmin = user && user.email === 'admin@gmail.com';
+  const role = userDetails?.role;
 
   return (
     <Router>
       <Routes>
-        <Route 
-          path="/" 
-          element={
-            !user ? <Login /> : 
-            isAdmin ? <Navigate to="/admin" /> : 
-            <Navigate to="/teacher" />
-          } 
-        />
+        <Route path="/" element={<Home />} />
+        
         <Route 
           path="/login" 
-          element={!user ? <Login /> : <Navigate to="/" />} 
+          element={
+            !user ? <Login /> : 
+            role === 'admin' ? <Navigate to="/admin" /> : 
+            role === 'teacher' ? <Navigate to="/teacher" /> :
+            <Navigate to="/student" />
+          } 
         />
+        
         <Route 
           path="/signup" 
-          element={!user ? <Signup /> : <Navigate to="/" />} 
+          element={
+            !user ? <Signup /> : 
+            role === 'admin' ? <Navigate to="/admin" /> : 
+            role === 'teacher' ? <Navigate to="/teacher" /> :
+            <Navigate to="/student" />
+          } 
         />
+        
         <Route 
           path="/teacher" 
           element={
-            user && !isAdmin ? <TeacherDashboard user={user} /> : <Navigate to={isAdmin ? "/admin" : "/login"} />
+            user && role === 'teacher' ? <TeacherDashboard user={user} /> : <Navigate to="/login" />
           } 
         />
+        
         <Route 
           path="/admin" 
           element={
-            isAdmin ? <AdminDashboard /> : <Navigate to={user ? "/teacher" : "/login"} />
+            user && role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" />
+          } 
+        />
+
+        <Route 
+          path="/student" 
+          element={
+            user && role === 'student' ? <StudentDashboard user={user} /> : <Navigate to="/login" />
           } 
         />
       </Routes>
